@@ -48,14 +48,14 @@ eval e names tags = case e of
   App f a -> step App1 (app (eval f names tags) (eval a names tags))
   Prompt tag e -> delim (\control -> step (NewPrompt tag) (eval e names (Map.insert tag control tags)))
   Control tag x e | Just control <- Map.lookup tag tags -> control (\k -> step (Capture tag) (eval e (Map.insert x (fun k) names) tags))
-                | otherwise                         -> stuck
+                  | otherwise                           -> stuck
 
 data T a = Step Event (T a) | Ret !a deriving Functor
 instance Trace (T a) where step = Step
 instance Applicative T where pure = Ret; (<*>) = ap
 instance Monad T where Step ev t >>= k = Step ev (t >>= k); Ret v >>= k = k v
 
-type Cntr = Int
+type Cntr = Int -- counts stack segments incurred by prompt
 
 type Stack = [(Cntr, Value -> T Value)]
 type C = Stack -> T Value
@@ -115,9 +115,9 @@ instance Show v => Show (T v) where
 
 main :: IO ()
 main = do
-  print $ evalTop (read "let i = λx.x in i i")
-  print $ evalTop (read "prompt tag (inc (control tag k (k (k 0))))")
-  print $ evalTop (read "let i = λx.x in prompt tag (i (control tag k (k (k i))))")
+--  print $ evalTop (read "let i = λx.x in i i")
+  print $ evalTop (read "prompt tag (inc (control tag k (k (k (k 0)))))") -- expected result: 2
+--  print $ evalTop (read "let i = λx.x in prompt tag (i (control tag k (k (k i))))")
 
 appPrec, lamPrec, varPrec :: Read.Prec
 lamPrec = Read.minPrec
